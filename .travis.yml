@@ -7,6 +7,6 @@ python:
 install:
   - pip install pycurl httpbin
 script:
-  - python -m pytest
+  - python -m pytest -vv
 notifications:
   irc: "irc.freenode.org#o11c"
