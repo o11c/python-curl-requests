@@ -1,7 +1,9 @@
 import unittest
 from urllib.parse import urljoin
+import warnings
 
-if 0:
+use_curl_requests = 1
+if not use_curl_requests:
     import requests
 else:
     import curl_requests as requests
@@ -53,7 +55,15 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
         with requests.Session() as sess:
             for rs in [requests, sess]:
                 for data in [None, '', 'abc', b'', b'abc']:
-                    resp = rs.get(urljoin(self.url, 'get'), data=data)
+                    if use_curl_requests and data:
+                        with warnings.catch_warnings(record=True) as w:
+                            warnings.simplefilter('always')
+                            resp = rs.get(urljoin(self.url, 'get'), data=data)
+                        assert len(w) == 1
+                        assert w[0].category is requests.RequestWarning
+                        assert w[0].message.args[0] == 'Payload with a GET is unspecified'
+                    else:
+                        resp = rs.get(urljoin(self.url, 'get'), data=data)
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
@@ -75,7 +85,15 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
         with requests.Session() as sess:
             for rs in [requests, sess]:
                 for data in [None, '', 'abc', b'', b'abc']:
-                    resp = rs.head(urljoin(self.url, 'get'), data=data)
+                    if use_curl_requests and data:
+                        with warnings.catch_warnings(record=True) as w:
+                            warnings.simplefilter('always')
+                            resp = rs.head(urljoin(self.url, 'get'), data=data)
+                        assert len(w) == 1
+                        assert w[0].category is requests.RequestWarning
+                        assert w[0].message.args[0] == 'Payload with a HEAD is unspecified'
+                    else:
+                        resp = rs.head(urljoin(self.url, 'get'), data=data)
                     assert resp.status_code == 200
                     assert resp.content == b''
                     assert resp.text == u''
@@ -170,8 +188,7 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
     def test_get_404(self):
         with requests.Session() as sess:
             for rs in [requests, sess]:
-                for data in [None, '', 'abc', b'', b'abc']:
-                    resp = rs.get(urljoin(self.url, 'status/404'), data=data)
-                    assert resp.status_code == 404
-                    assert resp.content == b''
-                    assert resp.text == u''
+                resp = rs.get(urljoin(self.url, 'status/404'))
+                assert resp.status_code == 404
+                assert resp.content == b''
+                assert resp.text == u''

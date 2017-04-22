@@ -1,10 +1,12 @@
-import httpbin
+import logging
 import selectors
 import socket
 import socketserver
 import threading
 import types
 import unittest
+
+import httpbin
 import werkzeug.serving
 
 
@@ -72,6 +74,9 @@ def dummy_client(server_address):
     '''
     with socket.socket() as c:
         c.connect(server_address)
+
+
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 class RunApp:

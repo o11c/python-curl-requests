@@ -19,11 +19,11 @@ class Session:
         self.curl.close()
         del self.curl
 
-    def request(self, method, url, *, params=None, data=None, json=None, allow_redirects=True):
+    def request(self, method, url, *, params=None, data=None, json=None, allow_redirects=True, stacklevel=1):
         c = self.curl
         try:
             c.reset()
-            if 1: c.setopt(pycurl.VERBOSE, True)
+            if 0: c.setopt(pycurl.VERBOSE, True)
             headers = []
             if isinstance(data, str):
                 data = data.encode('ascii')
@@ -35,13 +35,13 @@ class Session:
             elif method == 'GET':
                 if 0: c.setopt(pycurl.HTTPGET, True)
                 if data:
-                    warnings.warn('Payload with a GET is unspecified', RequestWarning)
+                    warnings.warn('Payload with a GET is unspecified', RequestWarning, stacklevel=stacklevel+1)
                     c.setopt(pycurl.UPLOAD, True)
                     c.setopt(pycurl.CUSTOMREQUEST, method)
             elif method == 'HEAD':
                 c.setopt(pycurl.NOBODY, True)
                 if data:
-                    warnings.warn('Payload with a HEAD is unspecified', RequestWarning)
+                    warnings.warn('Payload with a HEAD is unspecified', RequestWarning, stacklevel=stacklevel+1)
                     c.setopt(pycurl.UPLOAD, True)
                     c.setopt(pycurl.CUSTOMREQUEST, method)
                     headers[headers.index('Connection: keep-alive')] = 'Connection: close'
@@ -90,24 +90,24 @@ class Session:
             c.reset()
         return resp
 
-    def delete(self, url, **kwargs):
-        return self.request('delete', url, **kwargs)
+    def delete(self, url, stacklevel=1, **kwargs):
+        return self.request('delete', url, stacklevel=stacklevel+1, **kwargs)
 
-    def get(self, url, params=None, **kwargs):
-        return self.request('get', url, params=params, **kwargs)
+    def get(self, url, params=None, stacklevel=1, **kwargs):
+        return self.request('get', url, params=params, stacklevel=stacklevel+1, **kwargs)
 
-    def head(self, url, **kwargs):
+    def head(self, url, stacklevel=1, **kwargs):
         kwargs.setdefault('allow_redirects', False)
-        return self.request('head', url, **kwargs)
+        return self.request('head', url, stacklevel=stacklevel+1, **kwargs)
 
-    def options(self, url, **kwargs):
-        return self.request('options', url, **kwargs)
+    def options(self, url, stacklevel=1, **kwargs):
+        return self.request('options', url, stacklevel=stacklevel+1, **kwargs)
 
-    def patch(self, url, data=None, **kwargs):
-        return self.request('patch', url,  data=data, **kwargs)
+    def patch(self, url, data=None, stacklevel=1, **kwargs):
+        return self.request('patch', url,  data=data, stacklevel=stacklevel+1, **kwargs)
 
-    def post(self, url, data=None, json=None, **kwargs):
-        return self.request('post', url, data=data, json=json, **kwargs)
+    def post(self, url, data=None, json=None, stacklevel=1, **kwargs):
+        return self.request('post', url, data=data, json=json, stacklevel=stacklevel+1, **kwargs)
 
-    def put(self, url, data=None, **kwargs):
-        return self.request('put', url, data=data, **kwargs)
+    def put(self, url, data=None, stacklevel=1, **kwargs):
+        return self.request('put', url, data=data, stacklevel=stacklevel+1, **kwargs)
