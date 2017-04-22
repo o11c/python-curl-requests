@@ -2,6 +2,7 @@ import unittest
 from urllib.parse import urljoin
 import warnings
 
+slow_tests = 1
 use_curl_requests = 1
 if not use_curl_requests:
     import requests
@@ -192,3 +193,65 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                 assert resp.status_code == 404
                 assert resp.content == b''
                 assert resp.text == u''
+
+    @unittest.skipIf(not slow_tests, 'test is slow')
+    def test_status_1xx(self):
+        with requests.Session() as sess:
+            for i in range(100, 200):
+                url = urljoin(self.url, 'status/%d' % i)
+                for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                    if use_curl_requests or i == 100:
+                        with self.assertRaises(requests.RequestException):
+                            _ = sess.get(url, allow_redirects=False)
+                    else:
+                        resp = sess.get(url, allow_redirects=False)
+                        assert resp.status_code == i, (resp.status_code, i)
+                        assert resp.text == u'', (resp.status_code, resp.text)
+
+    @unittest.skipIf(not slow_tests, 'test is slow')
+    def test_status_2xx(self):
+        with requests.Session() as sess:
+            for i in range(200, 300):
+                url = urljoin(self.url, 'status/%d' % i)
+                for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                    resp = sess.get(url, allow_redirects=False)
+                    assert resp.status_code == i, (resp.status_code, i)
+                    assert resp.text == u'', (resp.status_code, resp.text)
+
+    @unittest.skipIf(not slow_tests, 'test is slow')
+    def test_status_3xx(self):
+        with requests.Session() as sess:
+            for i in range(300, 400):
+                url = urljoin(self.url, 'status/%d' % i)
+                for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                    resp = sess.get(url, allow_redirects=False)
+                    assert resp.status_code == i, (resp.status_code, i)
+                    assert resp.text == u'', (resp.status_code, resp.text)
+
+    @unittest.skipIf(not slow_tests, 'test is slow')
+    def test_status_4xx(self):
+        with requests.Session() as sess:
+            for i in range(400, 500):
+                text = {
+                    402: u'Fuck you, pay me!',
+                    406: {"message": "Client did not request a supported media type.", "accept": ["image/webp", "image/svg+xml", "image/jpeg", "image/png", "image/*"]},
+                    418: u'\n    -=[ teapot ]=-\n\n       _...._\n     .\'  _ _ `.\n    | ."` ^ `". _,\n    \\_;`"---"`|//\n      |       ;/\n      \\_     _/\n        `"""`\n',
+                }.get(i, u'')
+                url = urljoin(self.url, 'status/%d' % i)
+                for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                    resp = sess.get(url, allow_redirects=False)
+                    assert resp.status_code == i, (resp.status_code, i)
+                    if isinstance(text, dict):
+                        assert resp.json() == text, (resp.status_code, resp.text)
+                    else:
+                        assert resp.text == text, (resp.status_code, resp.text)
+
+    @unittest.skipIf(not slow_tests, 'test is slow')
+    def test_status_5xx(self):
+        with requests.Session() as sess:
+            for i in range(500, 600):
+                url = urljoin(self.url, 'status/%d' % i)
+                for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                    resp = sess.get(url, allow_redirects=False)
+                    assert resp.status_code == i, (resp.status_code, i)
+                    assert resp.text == u'', (resp.status_code, resp.text)

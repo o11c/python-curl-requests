@@ -1,7 +1,14 @@
+from collections import OrderedDict
+import sys
 import unittest
 
 from curl_requests.structures import CaseInsensitiveDict
 
+
+def xfail_if(cond):
+    if cond:
+        return unittest.expectedFailure
+    return lambda x: x
 
 class TestCaseInsensitiveDict(unittest.TestCase):
     def test_eq(self):
@@ -26,6 +33,8 @@ class TestCaseInsensitiveDict(unittest.TestCase):
         assert CaseInsensitiveDict({'Σ': 1}) == {'σ': 1}
         assert CaseInsensitiveDict({'Σ': 1}) == {'ς': 1}
 
+    @xfail_if(sys.version_info[:2] <= (3, 4) or '__pypy__' in sys.modules and sys.pypy_version_info[:2] <= (5, 7))
+    def test_cherokee(self):
         assert CaseInsensitiveDict({'ꭰ': 1}) == {'ꭰ': 1}
         assert CaseInsensitiveDict({'ꭰ': 1}) == {'Ꭰ': 1}
         assert CaseInsensitiveDict({'Ꭰ': 1}) == {'ꭰ': 1}
@@ -52,3 +61,8 @@ class TestCaseInsensitiveDict(unittest.TestCase):
         assert 'Ω' in CaseInsensitiveDict({'Ω': 1})
         assert '\u0344' in CaseInsensitiveDict({'\u0308\u0301': 1})
         assert 'Å' in CaseInsensitiveDict({'Å': 1})
+
+    def test_ord(self):
+        assert CaseInsensitiveDict(a=1) == OrderedDict({'A': 1})
+        # This can only work because OrderedDict.__eq__ returns NotImplemented
+        assert OrderedDict({'a': 1}) == CaseInsensitiveDict(A=1)

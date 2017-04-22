@@ -31,9 +31,11 @@ def monkeypatch_socketserver(what=None):
 
 def _sane_serve_forever(self, poll_interval='ignored'):
     assert self.shutdown_pipe is None
+    self.shutdown_lock = threading.Lock()
+    write_sock = None
     try:
         read_sock, write_sock = socket.socketpair()
-        with read_sock, write_sock:
+        with read_sock:
             self.shutdown_pipe = write_sock
 
             with selectors.DefaultSelector() as selector:
@@ -56,14 +58,18 @@ def _sane_serve_forever(self, poll_interval='ignored'):
 
                     self.service_actions()
     finally:
-        self.shutdown_pipe = None
-        #self.server_close()
+        with self.shutdown_lock:
+            self.shutdown_pipe.close()
+            self.shutdown_pipe = None
+        self.shutdown_lock = None
 
 
 def _sane_shutdown(self):
     assert self.shutdown_pipe is not None
     self.shutdown_pipe.send(b'\0')
-    self.shutdown_pipe.recv(1)
+    with self.shutdown_lock:
+        if self.shutdown_pipe is not None:
+            self.shutdown_pipe.recv(1)
 
 
 monkeypatch_socketserver()
