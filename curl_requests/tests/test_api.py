@@ -9,6 +9,19 @@ else:
 from .common import HttpBinMixin
 
 
+def munge(orig_dct):
+    dct = orig_dct['headers']
+    assert isinstance(dct, dict)
+    bad_keys = []
+    keys = list(dct)
+    for k, v in dct.items():
+        if v == '':
+            bad_keys.append(k)
+    for k in bad_keys:
+        del dct[k]
+    return orig_dct
+
+
 class TestHttpBin(HttpBinMixin, unittest.TestCase):
     def test_delete(self):
         with requests.Session() as sess:
@@ -18,7 +31,7 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
-                    assert resp.json() == {
+                    assert munge(resp.json()) == {
                         'args': {},
                         'data': data or '',
                         'files': {},
@@ -28,7 +41,6 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                             'Accept-Encoding': 'gzip, deflate',
                             'Connection': 'keep-alive',
                             'Content-Length': '%d' % len(data or ''),
-                            'Content-Type': '',
                             'Host': 'localhost:%s' % self.server_port,
                             'User-Agent': requests.utils.default_user_agent(),
                         },
@@ -45,20 +57,19 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
-                    assert resp.json() == {
+                    assert munge(resp.json()) == munge({
                         'args': {},
                         'headers': {
                             'Accept': '*/*',
                             'Accept-Encoding': 'gzip, deflate',
                             'Connection': 'keep-alive',
                             'Content-Length': '%d' % len(data) if data else '',
-                            'Content-Type': '',
                             'Host': 'localhost:%s' % self.server_port,
                             'User-Agent': requests.utils.default_user_agent(),
                         },
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/get' % self.server_port,
-                    }, data
+                    }), data
 
     def test_head(self):
         with requests.Session() as sess:
@@ -86,7 +97,7 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
-                    assert resp.json() == {
+                    assert munge(resp.json()) == {
                         'args': {},
                         'data': data or '',
                         'files': {},
@@ -96,7 +107,6 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                             'Accept-Encoding': 'gzip, deflate',
                             'Connection': 'keep-alive',
                             'Content-Length': '%d' % len(data or ''),
-                            'Content-Type': '',
                             'Host': 'localhost:%s' % self.server_port,
                             'User-Agent': requests.utils.default_user_agent(),
                         },
@@ -113,7 +123,7 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
-                    assert resp.json() == {
+                    assert munge(resp.json()) == {
                         'args': {},
                         'data': data or '',
                         'files': {},
@@ -123,7 +133,6 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                             'Accept-Encoding': 'gzip, deflate',
                             'Connection': 'keep-alive',
                             'Content-Length': '%d' % len(data or ''),
-                            'Content-Type': '',
                             'Host': 'localhost:%s' % self.server_port,
                             'User-Agent': requests.utils.default_user_agent(),
                         },
@@ -140,7 +149,7 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     if isinstance(data, bytes):
                         data = data.decode('ascii')
-                    assert resp.json() == {
+                    assert munge(resp.json()) == {
                         'args': {},
                         'data': data or '',
                         'files': {},
@@ -150,7 +159,6 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                             'Accept-Encoding': 'gzip, deflate',
                             'Connection': 'keep-alive',
                             'Content-Length': '%d' % len(data or ''),
-                            'Content-Type': '',
                             'Host': 'localhost:%s' % self.server_port,
                             'User-Agent': requests.utils.default_user_agent(),
                         },

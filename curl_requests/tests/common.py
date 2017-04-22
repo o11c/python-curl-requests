@@ -95,32 +95,7 @@ class RunApp:
         self.server.shutdown()
 
 
-class HttpBinMixin_Class:
-    run_app = None
-    server_name = None
-    server_port = None
-    url = None
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.run_app = RunApp(httpbin.app)
-        cls.run_app.__enter__()
-        cls.server_name = cls.run_app.server.server_name
-        cls.server_port = cls.run_app.server.server_port
-        cls.url = cls.run_app.url
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-        cls.run_app.__exit__(None, None, None)
-        del cls.run_app
-        del cls.server_name
-        del cls.server_port
-        del cls.url
-
-
-class HttpBinMixin_Unit:
+class HttpBinMixin:
     run_app = None
     server_name = None
     server_port = None
@@ -141,7 +116,3 @@ class HttpBinMixin_Unit:
         del self.server_name
         del self.server_port
         del self.url
-
-
-HttpBinMixin = HttpBinMixin_Class
-#HttpBinMixin = HttpBinMixin_Unit
