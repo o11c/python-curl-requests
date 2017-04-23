@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import unittest
 from urllib.parse import urljoin
 import warnings
@@ -23,6 +24,7 @@ def munge(orig_dct):
     keys = list(dct)
     for k, v in dct.items():
         if v == '':
+            assert k in ['Content-Length', 'Content-Type']
             bad_keys.append(k)
     for k in bad_keys:
         del dct[k]
@@ -335,3 +337,27 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     resp = sess.get(url, allow_redirects=False)
                     assert resp.status_code == i, (resp.status_code, i)
                     assert resp.text == u'', (resp.status_code, resp.text)
+
+    def test_params(self):
+        with requests.Session() as sess:
+            url = urljoin(self.url, 'get?a=b&c=d')
+            for params in [
+                'e=f&a=c&g=h&g=i',
+                [('e', 'f'), ('a', 'c'), ('g', 'h'), ('g', 'i')],
+                [('e', 'f'), ('a', 'c'), ('g', ['h', 'i'])],
+                OrderedDict([('e', 'f'), ('a', 'c'), ('g', ['h', 'i'])]),
+            ]:
+                resp = sess.get(url, params=params)
+                assert resp.status_code == 200
+                assert munge(resp.json()) == {
+                    'args': {'a': ['b', 'c'], 'c': 'd', 'e': 'f', 'g': ['h', 'i']},
+                    'headers': {
+                        'Accept': '*/*',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'Connection': 'keep-alive',
+                        'Host': 'localhost:%s' % self.server_port,
+                        'User-Agent': requests.utils.default_user_agent(),
+                    },
+                    'origin': '127.0.0.1',
+                    'url': 'http://localhost:%d/get?a=b&c=d&e=f&a=c&g=h&g=i' % self.server_port,
+                }

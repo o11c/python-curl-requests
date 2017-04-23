@@ -1,4 +1,5 @@
 import io
+import urllib.parse
 import warnings
 
 import pycurl
@@ -7,6 +8,19 @@ from .exceptions import RequestException, RequestWarning
 from .models import Response
 from .status_codes import codes
 from .structures import CaseInsensitiveDict
+
+
+def _add_params(url, params):
+    if not params:
+        return url
+    if not isinstance(params, str):
+        params = urllib.parse.urlencode(params, doseq=True)
+    bits = urllib.parse.urlparse(url)
+    if bits.query:
+        bits = bits._replace(query=bits.query + '&' + params)
+    else:
+        bits = bits._replace(query=params)
+    return urllib.parse.urlunparse(bits)
 
 
 class Session:
@@ -21,6 +35,7 @@ class Session:
         del self.curl
 
     def request(self, method, url, *, params=None, data=None, json=None, allow_redirects=True, stacklevel=1):
+        url = _add_params(url, params)
         c = self.curl
         try:
             c.reset()
@@ -101,8 +116,8 @@ class Session:
     def delete(self, url, stacklevel=1, **kwargs):
         return self.request('delete', url, stacklevel=stacklevel+1, **kwargs)
 
-    def get(self, url, params=None, stacklevel=1, **kwargs):
-        return self.request('get', url, params=params, stacklevel=stacklevel+1, **kwargs)
+    def get(self, url, stacklevel=1, **kwargs):
+        return self.request('get', url, stacklevel=stacklevel+1, **kwargs)
 
     def head(self, url, stacklevel=1, **kwargs):
         kwargs.setdefault('allow_redirects', False)

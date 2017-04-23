@@ -18,7 +18,6 @@ def monkeypatch_socketserver():
     '''
     what = socketserver.BaseServer
     def _sane_init(self, *args, __orig_init=what.__init__, **kwargs):
-        print('did sane init!')
         __orig_init(self, *args, **kwargs)
         self.shutdown_lock = threading.Lock()
         self.shutdown_pipe = None
