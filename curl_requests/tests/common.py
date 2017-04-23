@@ -10,28 +10,25 @@ import httpbin
 import werkzeug.serving
 
 
-def maybe_bound_method(maybe_cls, function):
-    if isinstance(maybe_cls, type):
-        return function
-    return types.MethodType(function, maybe_cls)
-
-
-def monkeypatch_socketserver(what=None):
+def monkeypatch_socketserver():
     ''' Replace serve_forever() and shutdown() with correct implementations.
 
         Either an instance or a class can be patched. But beware of MROs!
         Honestly, the sanest thing to do is just patch BaseServer once.
     '''
-    if what is None:
-        what = socketserver.BaseServer
-    what.serve_forever = maybe_bound_method(what, _sane_serve_forever)
-    what.shutdown = maybe_bound_method(what, _sane_shutdown)
-    what.shutdown_pipe = None
+    what = socketserver.BaseServer
+    def _sane_init(self, *args, __orig_init=what.__init__, **kwargs):
+        print('did sane init!')
+        __orig_init(self, *args, **kwargs)
+        self.shutdown_lock = threading.Lock()
+        self.shutdown_pipe = None
+    what.__init__ = _sane_init
+    what.serve_forever = _sane_serve_forever
+    what.shutdown = _sane_shutdown
 
 
 def _sane_serve_forever(self, poll_interval='ignored'):
     assert self.shutdown_pipe is None
-    self.shutdown_lock = threading.Lock()
     write_sock = None
     try:
         read_sock, write_sock = socket.socketpair()
@@ -61,7 +58,6 @@ def _sane_serve_forever(self, poll_interval='ignored'):
         with self.shutdown_lock:
             self.shutdown_pipe.close()
             self.shutdown_pipe = None
-        self.shutdown_lock = None
 
 
 def _sane_shutdown(self):
@@ -89,7 +85,6 @@ class RunApp:
     def __init__(self, app):
         self.app = app
         server = self.server = werkzeug.serving.BaseWSGIServer('localhost', 0, app)
-        #monkeypatch_socketserver(server)
         self.url = 'http://%s:%s/' % (server.server_name, server.server_port)
 
     def __repr__(self):
