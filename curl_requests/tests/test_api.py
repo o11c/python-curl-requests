@@ -2,6 +2,8 @@ import unittest
 from urllib.parse import urljoin
 import warnings
 
+import werkzeug.serving
+
 slow_tests = 1
 use_curl_requests = 1
 if not use_curl_requests:
@@ -9,8 +11,10 @@ if not use_curl_requests:
 else:
     import curl_requests as requests
 
+from .common import Anything, Convertible, Set
 from .common import HttpBinMixin
 
+server_version = object.__new__(werkzeug.serving.WSGIRequestHandler).version_string()
 
 def munge(orig_dct):
     dct = orig_dct['headers']
@@ -51,6 +55,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/delete' % self.server_port,
                     }, data
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_get(self):
         with requests.Session() as sess:
@@ -81,6 +93,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/get' % self.server_port,
                     }), data
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_head(self):
         with requests.Session() as sess:
@@ -98,6 +118,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     assert resp.content == b''
                     assert resp.text == u''
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_options(self):
         with requests.Session() as sess:
@@ -107,6 +135,17 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                     assert resp.status_code == 200
                     assert resp.content == b''
                     assert resp.text == u''
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Max-Age': '3600',
+                        'Allow': Set({'GET', 'HEAD', 'OPTIONS'}),
+                        'Content-Length': '0',
+                        'Content-Type': 'text/html; charset=utf-8',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_patch(self):
         with requests.Session() as sess:
@@ -133,6 +172,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/patch' % self.server_port,
                     }, data
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_post(self):
         with requests.Session() as sess:
@@ -159,6 +206,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/post' % self.server_port,
                     }, data
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
     def test_put(self):
         with requests.Session() as sess:
@@ -185,14 +240,33 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                         'origin': '127.0.0.1',
                         'url': 'http://localhost:%d/put' % self.server_port,
                     }, data
+                    assert resp.headers == {
+                        'Access-Control-Allow-Credentials': 'true',
+                        'Access-Control-Allow-Origin': '*',
+                        'Content-Length': Convertible(int),
+                        'Content-Type': 'application/json',
+                        'Date': Anything(str),
+                        'Server': server_version,
+                    }
 
-    def test_get_404(self):
+    def test_404(self):
         with requests.Session() as sess:
-            for rs in [requests, sess]:
-                resp = rs.get(urljoin(self.url, 'status/404'))
+            for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
+                resp = sess.request(method, urljoin(self.url, 'status/404'))
+                if method == 'options':
+                    assert resp.status_code == 200
+                    continue
                 assert resp.status_code == 404
                 assert resp.content == b''
                 assert resp.text == u''
+                assert resp.headers == {
+                    'Access-Control-Allow-Credentials': 'true',
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Length': '0',
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Date': Anything(str),
+                    'Server': server_version,
+                }
 
     @unittest.skipIf(not slow_tests, 'test is slow')
     def test_status_1xx(self):
@@ -239,8 +313,14 @@ class TestHttpBin(HttpBinMixin, unittest.TestCase):
                 }.get(i, u'')
                 url = urljoin(self.url, 'status/%d' % i)
                 for method in ['delete', 'get', 'head', 'options', 'patch', 'post', 'put']:
-                    resp = sess.get(url, allow_redirects=False)
+                    resp = sess.request(method, url, allow_redirects=False)
+                    if method == 'options':
+                        assert resp.status_code == 200
+                        continue
                     assert resp.status_code == i, (resp.status_code, i)
+                    if method == 'head':
+                        assert resp.text == u''
+                        continue
                     if isinstance(text, dict):
                         assert resp.json() == text, (resp.status_code, resp.text)
                     else:

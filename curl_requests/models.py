@@ -10,7 +10,7 @@ class PreparedRequest:
 
 
 class Response:
-    __slots__ = ('content', 'status_code')
+    __slots__ = ('content', 'headers', 'status_code')
 
     @property
     def text(self):

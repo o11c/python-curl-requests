@@ -6,6 +6,7 @@ import pycurl
 from .exceptions import RequestException, RequestWarning
 from .models import Response
 from .status_codes import codes
+from .structures import CaseInsensitiveDict
 
 
 class Session:
@@ -71,7 +72,9 @@ class Session:
             c.setopt(pycurl.FOLLOWLOCATION, allow_redirects)
             c.setopt(pycurl.URL, url.encode('ascii'))
             output_buffer = io.BytesIO()
-            c.setopt(pycurl.WRITEDATA, output_buffer)
+            header_buffer = io.BytesIO()
+            c.setopt(pycurl.WRITEFUNCTION, output_buffer.write)
+            c.setopt(pycurl.HEADERFUNCTION, header_buffer.write)
             c.setopt(pycurl.HTTPHEADER, headers)
             try:
                 c.perform()
@@ -85,6 +88,11 @@ class Session:
                     raise RequestException('Expected perform() to fail when using this hack (???)')
             resp = Response()
             resp.content = output_buffer.getvalue()
+            resp.headers = CaseInsensitiveDict()
+            for line in header_buffer.getvalue().decode('ascii').split('\r\n')[1:-2]:
+                k, _, v = line.partition(': ')
+                assert k not in resp.headers
+                resp.headers[k] = v
             resp.status_code = codes(c.getinfo(pycurl.RESPONSE_CODE))
         finally:
             c.reset()

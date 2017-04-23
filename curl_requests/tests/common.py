@@ -127,3 +127,36 @@ class HttpBinMixin:
         del self.server_name
         del self.server_port
         del self.url
+
+
+class Anything:
+    def __init__(self, type=object):
+        self.type = type
+
+    def __repr__(self):
+        return '<%s type=%s>' % (self.__class__.__name__, self.type.__name__)
+
+    def __eq__(self, other):
+        return isinstance(other, self.type)
+
+
+class Convertible(Anything):
+    def __eq__(self, other):
+        try:
+            self.type(other)
+        except (TypeError, ValueError):
+            return False
+        else:
+            return True
+
+
+class Set(Anything):
+    def __init__(self, set, split=', '):
+        self.set = set
+        self.split = split
+
+    def __repr__(self):
+        return '<%s set=%r split=%r>' % (self.__class__.__name__, self.set, self.split)
+
+    def __eq__(self, other):
+        return isinstance(other, str) and set(other.split(self.split)) == self.set
