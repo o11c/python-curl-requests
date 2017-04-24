@@ -3,8 +3,23 @@ from collections.abc import Mapping, MutableMapping
 import unicodedata
 
 
-def _fold(s):
-    return unicodedata.normalize('NFC', s.casefold())
+def _nfc(s):
+    return unicodedata.normalize('NFC', s)
+
+def _nfd(s):
+    return unicodedata.normalize('NFD', s)
+
+def _nfkc(s):
+    return unicodedata.normalize('NFKC', s)
+
+def _nfkd(s):
+    return unicodedata.normalize('NFKD', s)
+
+def _canonical_fold(s):
+    return _nfd(str.casefold(_nfd(s)))
+
+def _identifier_fold(s):
+    return _nfkd(str.casefold(_nfkd(str.casefold(_nfd(s)))))
 
 
 class CaseInsensitiveDict(MutableMapping):
@@ -21,19 +36,19 @@ class CaseInsensitiveDict(MutableMapping):
         return '%s%r' % (self.__class__.__name__, dict(self))
 
     def __getitem__(self, key):
-        fold_key = _fold(key)
+        fold_key = _canonical_fold(key)
         orig_key, value = self._dict[fold_key]
         return value
 
     def __setitem__(self, key, value):
-        fold_key = _fold(key)
+        fold_key = _canonical_fold(key)
         orig_key, orig_value = self._dict.get(fold_key, (None, None))
         if orig_key is not None:
             key = orig_key
         self._dict[fold_key] = (key, value)
 
     def __delitem__(self, key):
-        fold_key = _fold(key)
+        fold_key = _canonical_fold(key)
         del self._dict[fold_key]
 
     def __iter__(self):
